@@ -1,0 +1,10 @@
+Tables: 
+    Kush, Sarah
+Variables: 
+    id INTEGER PRIMARY KEY
+    score INTEGER,
+    numberOfRaces INTEGER
+    win BOOLEAN
+    turnAssist BOOLEAN
+    highScore BOOLEAN
+    lowScore BOOLEAN
