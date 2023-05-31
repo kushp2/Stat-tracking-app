@@ -1,113 +1,70 @@
-import kivy
-kivy.require("2.1.0")
-from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivy.uix.label import Label
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.image import Image
-from kivy.clock import Clock
-from kivy.core.window import Window
 import sqlite3
+import customtkinter as ctk
+from PIL import Image, ImageTk
 
 
+#functions
+#on score button click
+def scoreButton(score):
+    print(f"{score} button pressed")
 
 
-
-# Functions
-#makes the individual buttons layout
-def makeButton(data, button_layout):
-    button = Button(text=f"{data[1]}", size_hint=(None, 1), width=300, background_color = (0, 1, 1, 1))
-    button_layout.add_widget(button)
-
-    if data[3] == 1:
-        icon = Image(source="win.png", size_hint=(None, 1), width=30)
-        button_layout.add_widget(icon)
-    
-    return button_layout
-
-# Creates the layout for Sarah's buttons
-def sarahButton(sarah_scroll_layout):
-    sarah_label = Label(text="Sarah's Data")
-    sarah_scroll_layout.layout.add_widget(sarah_label)
-    
-    #makes a button for every match
-    for data in sarah_data:
-        button_layout = BoxLayout(orientation='horizontal')
-        button_layout = makeButton(data, button_layout)
-        sarah_scroll_layout.layout.add_widget(button_layout)
-    
-    return sarah_scroll_layout
-
-# Creates the layout for Kush's buttons
-def kushButton(kush_scroll_layout):
-    kush_label = Label(text="Kush's Data")
-    kush_scroll_layout.layout.add_widget(kush_label)
-    
-    for data in kush_data:
-        button_layout = BoxLayout(orientation='horizontal')
-        button_layout = makeButton(data, button_layout)
-        kush_scroll_layout.layout.add_widget(button_layout)
-    
-    return kush_scroll_layout
-#end of fuctions
-
-
-
-
+#database
 #Creates a connection to the database and grabs the data
 conn = sqlite3.connect('mydatabase.db')
 cursor = conn.cursor()
 
-#Grabs data for Sarah and Kush tables
+#Grabs data for Sarah and Kush's tables
 cursor.execute("SELECT * FROM Kush")
 kush_data = cursor.fetchall()
 cursor.execute("SELECT * FROM Sarah")
 sarah_data = cursor.fetchall()
 
-#changes the window color
-Window.clearcolor = (.5, .5, .5, 1)
 
-class ScrollableBoxLayout(ScrollView):
-    def __init__(self, **kwargs):
-        super(ScrollableBoxLayout, self).__init__(**kwargs)
-        self.layout = BoxLayout(orientation='vertical')
-        self.add_widget(self.layout)
+#interface
+#sets up the basics of the interface
+ctk.set_appearance_mode("Dark")
+ctk.set_default_color_theme("dark-blue")
+root = ctk.CTk()
+root.geometry("800x480")
 
-class MarioKarrApp(App):
-    def build(self):
-        # Create a scrollable box layout for Sarah's data
-        sarah_scroll_layout = ScrollableBoxLayout()
-        sarah_scroll_layout = sarahButton(sarah_scroll_layout)
+#makes frame for sarah and kush's scores and an input button
+frame_sarah = ctk.CTkScrollableFrame(master=root)
+frame_sarah.pack(side = "left", fill="both", expand = True)
+label = ctk.CTkLabel (master = frame_sarah, text = "Sarah", font=("Roboto",24))
+label. pack(pady = 12, padx = 10)
 
-        # Create a scrollable box layout for Kush's data
-        kush_scroll_layout = ScrollableBoxLayout()
-        kush_scroll_layout = kushButton(kush_scroll_layout)
+frame_kush = ctk.CTkScrollableFrame(master=root)
+frame_kush.pack(side = "right", fill="both", expand = True)
+label = ctk.CTkLabel (master = frame_kush, text = "Kush", font=("Roboto",24))
+label. pack(pady = 12, padx = 10)
 
-        # Create a scroll view for Sarah's data
-        sarah_scroll_view = ScrollView()
-        sarah_scroll_view.add_widget(sarah_scroll_layout)
+#loads images
+winImage= ImageTk.PhotoImage(Image.open("win.png").resize((16, 16)))
 
-        # Create a scroll view for Kush's data
-        kush_scroll_view = ScrollView()
-        kush_scroll_view.add_widget(kush_scroll_layout)
+#populates the frames with buttons
+for sarah_entry, kush_entry in zip(sarah_data, kush_data):
+    
+    sarah_score = sarah_entry[1]
+    kush_score = kush_entry[1]
+    
+    #if sarah wins
+    if sarah_entry[3] == 1:
+        button_sarah = ctk.CTkButton(master = frame_sarah, image = winImage, text = sarah_score, command = lambda s=sarah_score: scoreButton(s))
+        button_sarah.pack(pady=5, padx=5, fill = ctk.X)
+    else: 
+        button_sarah = ctk.CTkButton(master = frame_sarah, text = sarah_score, command = lambda s=sarah_score: scoreButton(s))
+        button_sarah.pack(pady=5, padx=5, fill = ctk.X)
+    #if kush wins
+    if kush_entry[3] == 1:
+        button_kush = ctk.CTkButton(master = frame_kush, image = winImage, text = kush_score, command = lambda s=kush_score: scoreButton(s))
+        button_kush.pack(pady=5, padx=5, fill = ctk.X)
+    else:
+        button_kush = ctk.CTkButton(master = frame_kush, text = kush_score, command = lambda s=kush_score: scoreButton(s))
+        button_kush.pack(pady=5, padx=5, fill = ctk.X)
 
-        # Synchronize scrolling of the two scroll views
-        def sync_scroll_pos(dt):
-            sarah_scroll_view.scroll_y = kush_scroll_view.scroll_y
 
-        sarah_scroll_view.bind(scroll_y=lambda instance, value: Clock.schedule_once(sync_scroll_pos, 0))
-        kush_scroll_view.bind(scroll_y=lambda instance, value: Clock.schedule_once(sync_scroll_pos, 0))
-
-        # Create a root box layout to hold the two scroll views side by side
-        root_layout = BoxLayout(orientation='horizontal')
-        root_layout.add_widget(sarah_scroll_view)
-        root_layout.add_widget(kush_scroll_view)
-
-        return root_layout
-
-
-# Close the cursor and connection and run the app
+#runs the program then close the cursor and connection
+root.mainloop()
 cursor.close()
 conn.close()
-MarioKarrApp().run()
